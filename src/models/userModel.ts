@@ -11,6 +11,7 @@ export interface IUser extends Document {
   createdAt: Date;
 }
 
+// Define the User schema
 const userSchema = new Schema<IUser>(
   {
     firstName: { type: String, required: true, trim: true },
