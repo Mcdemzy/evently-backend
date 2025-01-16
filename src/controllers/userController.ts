@@ -34,6 +34,6 @@ export const registerUser = async (
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    next(error);
+    next(error); //pass error handlers
   }
 };
