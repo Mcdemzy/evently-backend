@@ -21,6 +21,12 @@ export const registerUser = async (
       return;
     }
 
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      res.status(400).json({ message: "User Name is already in use" });
+      return;
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser: IUser = new User({
