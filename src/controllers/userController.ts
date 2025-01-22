@@ -2,44 +2,87 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import User, { IUser } from "../models/userModel";
 
+// Utility function to handle responses
+const handleResponse = (res: Response, status: number, message: string) => {
+  return res.status(status).json({ message });
+};
+
 export const registerUser = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { firstName, lastName, username, email, password } = req.body;
-
-  if (!firstName || !lastName || !username || !email || !password) {
-    res.status(400).json({ message: "All fields are required" });
-    return;
-  }
-
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(400).json({ message: "User already exists" });
+    const { firstName, lastName, username, email, password, acceptedTerms } =
+      req.body;
+
+    // Validate input fields
+    if (
+      !firstName ||
+      !lastName ||
+      !username ||
+      !email ||
+      !password ||
+      acceptedTerms === undefined
+    ) {
+      handleResponse(
+        res,
+        400,
+        "All fields are required, including accepting terms and conditions."
+      );
       return;
     }
 
+    // Check for existing email
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      handleResponse(
+        res,
+        400,
+        "Email is already in use. Please try another one."
+      );
+      return;
+    }
+
+    // Check for existing username
     const existingUsername = await User.findOne({ username });
     if (existingUsername) {
-      res.status(400).json({ message: "User Name is already in use" });
+      handleResponse(
+        res,
+        400,
+        "Username is already taken. Please choose a different one."
+      );
       return;
     }
 
+    // Hash password securely
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create new user instance
     const newUser: IUser = new User({
-      firstName,
-      lastName,
-      username,
-      email,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      username: username.trim(),
+      email: email.toLowerCase().trim(),
       password: hashedPassword,
+      acceptedTerms,
     });
 
     await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
-  } catch (error) {
-    next(error); //pass error handlers
+
+    handleResponse(res, 201, "User registered successfully.");
+  } catch (error: any) {
+    if (error.code === 11000) {
+      // Handle unique key constraint errors
+      const duplicateField = Object.keys(error.keyPattern)[0];
+      handleResponse(
+        res,
+        400,
+        `${duplicateField} already exists. Please use a different one.`
+      );
+    } else {
+      console.error("Error registering user:", error);
+      next(error); // Pass unexpected errors to error handler middleware
+    }
   }
 };
