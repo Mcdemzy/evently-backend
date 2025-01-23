@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import User, { IUser } from "../models/userModel";
 
-// Utility function to handle responses
 const handleResponse = (res: Response, status: number, message: string) => {
   return res.status(status).json({ message });
 };
