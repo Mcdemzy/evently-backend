@@ -72,7 +72,6 @@ export const registerUser = async (
     handleResponse(res, 201, "User registered successfully.");
   } catch (error: any) {
     if (error.code === 11000) {
-      // Handle unique key constraint errors
       const duplicateField = Object.keys(error.keyPattern)[0];
       handleResponse(
         res,
