@@ -57,7 +57,6 @@ export const registerUser = async (
     // Hash password securely
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create new user instance
     const newUser: IUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
