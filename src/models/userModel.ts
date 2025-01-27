@@ -7,6 +7,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   acceptedTerms: boolean;
+  resetPasswordOTP?: string;
+  resetPasswordExpires?: number;
   createdAt: Date;
 }
 
@@ -18,6 +20,8 @@ const userSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
     acceptedTerms: { type: Boolean },
+    resetPasswordOTP: { type: String },
+    resetPasswordExpires: { type: Number },
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
