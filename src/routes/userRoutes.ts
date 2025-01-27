@@ -1,23 +1,17 @@
-import { Router, Request, Response } from "express";
-import { registerUser, loginUser } from "../controllers/userController";
-import { authMiddleware } from "../middlewares/authMiddleware";
-
-interface AuthRequest extends Request {
-  user?: any;
-}
+import { Router } from "express";
+import {
+  registerUser,
+  loginUser,
+  forgotPassword,
+  resetPassword,
+} from "../controllers/userController";
 
 const router = Router();
 
 // Public routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
-
-// Protected route
-router.get("/profile", authMiddleware, (req: AuthRequest, res: Response) => {
-  res.json({
-    message: "Welcome to your profile",
-    user: req.user, // No more TypeScript error here
-  });
-});
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 export default router;

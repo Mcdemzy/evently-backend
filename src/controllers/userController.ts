@@ -3,13 +3,16 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../models/userModel";
 
+import { sendEmail } from "../utils/email";
+import crypto from "crypto";
+
 const handleResponse = (
   res: Response,
   status: number,
   message: string,
   data?: any
-) => {
-  return res.status(status).json({ message, ...data });
+): void => {
+  res.status(status).json({ message, ...data });
 };
 
 export const registerUser = async (
@@ -137,6 +140,78 @@ export const loginUser = async (
     });
   } catch (error) {
     console.error("Error during login:", error);
+    next(error);
+  }
+};
+
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      handleResponse(res, 404, "User not found.");
+      return;
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    user.resetPasswordOTP = otp;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    await user.save();
+
+    const subject = "Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
+    await sendEmail(user.email, subject, text);
+
+    handleResponse(res, 200, "OTP sent to your email.");
+  } catch (error) {
+    console.error("Error in forgotPassword:", error);
+    next(error);
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { email, otp, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      handleResponse(res, 404, "User not found.");
+      return;
+    }
+
+    // Check if OTP matches and is not expired
+    if (
+      user.resetPasswordOTP !== otp ||
+      !user.resetPasswordExpires || // Ensure resetPasswordExpires is defined
+      user.resetPasswordExpires < Date.now()
+    ) {
+      handleResponse(res, 400, "Invalid or expired OTP.");
+      return;
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the user's password and clear the OTP fields
+    user.password = hashedPassword;
+    user.resetPasswordOTP = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    handleResponse(res, 200, "Password reset successfully.");
+  } catch (error) {
+    console.error("Error in resetPassword:", error);
     next(error);
   }
 };
