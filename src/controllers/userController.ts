@@ -85,7 +85,7 @@ export const registerUser = async (
       );
     } else {
       console.error("Error registering user:", error);
-      next(error); // Pass unexpected errors to error handler middleware
+      next(error);
     }
   }
 };
