@@ -24,7 +24,6 @@ export const registerUser = async (
     const { firstName, lastName, username, email, password, acceptedTerms } =
       req.body;
 
-    // Validate input fields
     if (
       !firstName ||
       !lastName ||
