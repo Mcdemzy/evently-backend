@@ -11,7 +11,7 @@ router.post("/login", userController_1.loginUser);
 router.get("/profile", authMiddleware_1.authMiddleware, (req, res) => {
     res.json({
         message: "Welcome to your profile",
-        user: req.user, // No more TypeScript error here
+        user: req.user, 
     });
 });
 exports.default = router;

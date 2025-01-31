@@ -159,8 +159,7 @@ export const forgotPassword = async (
 
     const otp = crypto.randomInt(100000, 999999).toString();
     user.resetPasswordOTP = otp;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     const subject = "Password Reset OTP";
