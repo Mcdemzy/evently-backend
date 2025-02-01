@@ -190,7 +190,7 @@ export const resetPassword = async (
     // Check if OTP matches and is not expired
     if (
       user.resetPasswordOTP !== otp ||
-      !user.resetPasswordExpires || // Ensure resetPasswordExpires is defined
+      !user.resetPasswordExpires ||
       user.resetPasswordExpires < Date.now()
     ) {
       handleResponse(res, 400, "Invalid or expired OTP.");
