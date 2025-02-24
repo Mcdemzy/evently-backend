@@ -12,24 +12,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.loginUser = exports.registerUser = void 0;
+exports.resetPassword = exports.forgotPassword = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
+const email_1 = require("../utils/email");
+const crypto_1 = __importDefault(require("crypto"));
 const handleResponse = (res, status, message, data) => {
-    return res.status(status).json(Object.assign({ message }, data));
+    res.status(status).json(Object.assign({ message }, data));
 };
 const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { firstName, lastName, username, email, password, acceptedTerms } = req.body;
-        // Validate input fields
-        if (!firstName ||
-            !lastName ||
-            !username ||
-            !email ||
-            !password ||
-            acceptedTerms === undefined) {
-            handleResponse(res, 400, "All fields are required, including accepting terms and conditions.");
+        const { firstName, lastName, username, email, password } = req.body;
+        if (!firstName || !lastName || !username || !email || !password) {
+            handleResponse(res, 400, "All fields are required.");
             return;
         }
         // Check for existing email
@@ -52,7 +48,6 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             username: username.trim(),
             email: email.toLowerCase().trim(),
             password: hashedPassword,
-            acceptedTerms,
         });
         yield newUser.save();
         handleResponse(res, 201, "User registered successfully.");
@@ -108,3 +103,56 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.loginUser = loginUser;
+const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    try {
+        const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            handleResponse(res, 404, "User not found.");
+            return;
+        }
+        const otp = crypto_1.default.randomInt(100000, 999999).toString();
+        user.resetPasswordOTP = otp;
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+        yield user.save();
+        const subject = "Password Reset OTP";
+        const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
+        yield (0, email_1.sendEmail)(user.email, subject, text);
+        handleResponse(res, 200, "OTP sent to your email.");
+    }
+    catch (error) {
+        console.error("Error in forgotPassword:", error);
+        next(error);
+    }
+});
+exports.forgotPassword = forgotPassword;
+const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, otp, newPassword } = req.body;
+    try {
+        const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            handleResponse(res, 404, "User not found.");
+            return;
+        }
+        // Check if OTP matches and is not expired
+        if (user.resetPasswordOTP !== otp ||
+            !user.resetPasswordExpires ||
+            user.resetPasswordExpires < Date.now()) {
+            handleResponse(res, 400, "Invalid or expired OTP.");
+            return;
+        }
+        // Hash the new password
+        const hashedPassword = yield bcryptjs_1.default.hash(newPassword, 10);
+        // Update the user's password and clear the OTP fields
+        user.password = hashedPassword;
+        user.resetPasswordOTP = undefined;
+        user.resetPasswordExpires = undefined;
+        yield user.save();
+        handleResponse(res, 200, "Password reset successfully.");
+    }
+    catch (error) {
+        console.error("Error in resetPassword:", error);
+        next(error);
+    }
+});
+exports.resetPassword = resetPassword;

@@ -21,22 +21,10 @@ export const registerUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const { firstName, lastName, username, email, password, acceptedTerms } =
-      req.body;
+    const { firstName, lastName, username, email, password } = req.body;
 
-    if (
-      !firstName ||
-      !lastName ||
-      !username ||
-      !email ||
-      !password ||
-      acceptedTerms === undefined
-    ) {
-      handleResponse(
-        res,
-        400,
-        "All fields are required, including accepting terms and conditions."
-      );
+    if (!firstName || !lastName || !username || !email || !password) {
+      handleResponse(res, 400, "All fields are required.");
       return;
     }
 
@@ -71,7 +59,6 @@ export const registerUser = async (
       username: username.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
-      acceptedTerms,
     });
 
     await newUser.save();
