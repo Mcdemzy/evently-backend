@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.forgotPassword = exports.loginUser = exports.registerUser = void 0;
+exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.loginUser = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
@@ -126,8 +126,8 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.forgotPassword = forgotPassword;
-const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { email, otp, newPassword } = req.body;
+const verifyOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, otp } = req.body;
     try {
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
@@ -139,6 +139,23 @@ const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, func
             !user.resetPasswordExpires ||
             user.resetPasswordExpires < Date.now()) {
             handleResponse(res, 400, "Invalid or expired OTP.");
+            return;
+        }
+        // If OTP is valid, respond with success
+        handleResponse(res, 200, "OTP verified successfully.");
+    }
+    catch (error) {
+        console.error("Error in verifyOTP:", error);
+        next(error);
+    }
+});
+exports.verifyOTP = verifyOTP;
+const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email, newPassword } = req.body;
+    try {
+        const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            handleResponse(res, 404, "User not found.");
             return;
         }
         // Hash the new password
