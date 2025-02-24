@@ -160,12 +160,12 @@ export const forgotPassword = async (
   }
 };
 
-export const resetPassword = async (
+export const verifyOTP = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const { email, otp, newPassword } = req.body;
+  const { email, otp } = req.body;
 
   try {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
@@ -181,6 +181,28 @@ export const resetPassword = async (
       user.resetPasswordExpires < Date.now()
     ) {
       handleResponse(res, 400, "Invalid or expired OTP.");
+      return;
+    }
+
+    // If OTP is valid, respond with success
+    handleResponse(res, 200, "OTP verified successfully.");
+  } catch (error) {
+    console.error("Error in verifyOTP:", error);
+    next(error);
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { email, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      handleResponse(res, 404, "User not found.");
       return;
     }
 
