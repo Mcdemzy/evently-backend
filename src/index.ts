@@ -23,6 +23,7 @@ if (!DB_NAME) {
 // Connect to MongoDB
 const connectDB = async () => {
   try {
+    console.log("Attempting to connect to MongoDB..."); // Debugging: Log connection attempt
     await mongoose.connect(MONGO_URI, {
       dbName: DB_NAME,
       retryWrites: true,
@@ -36,20 +37,28 @@ const connectDB = async () => {
 };
 
 // Start the server
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
-
-// Graceful shutdown
-const shutdown = async () => {
-  console.log("\nShutting down server...");
-  await mongoose.connection.close();
-  console.log("✅ MongoDB connection closed.");
-  server.close(() => {
-    console.log("Server closed.");
-    process.exit(0);
+const startServer = async () => {
+  await connectDB(); // Ensure database is connected before starting the server
+  const server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
   });
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    console.log("\nShutting down server...");
+    await mongoose.connection.close();
+    console.log("✅ MongoDB connection closed.");
+    server.close(() => {
+      console.log("Server closed.");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGINT", shutdown); // Handle Ctrl+C
+  process.on("SIGTERM", shutdown); // Handle termination signals
 };
 
-process.on("SIGINT", shutdown); // Handle Ctrl+C
-process.on("SIGTERM", shutdown); // Handle termination signals
+startServer().catch((error) => {
+  console.error("Failed to start server:", error);
+  process.exit(1);
+});
