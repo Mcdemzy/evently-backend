@@ -54,8 +54,8 @@ const startServer = async () => {
     });
   };
 
-  process.on("SIGINT", shutdown); // Handle Ctrl+C
-  process.on("SIGTERM", shutdown); // Handle termination signals
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 };
 
 startServer().catch((error) => {
