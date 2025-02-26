@@ -161,6 +161,33 @@ export const getCurrentUser = async (
   }
 };
 
+export const updateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { id } = req.params;
+  const { firstName, lastName, username, email } = req.body;
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { firstName, lastName, username, email },
+      { new: true }
+    ).select("-password -resetPasswordOTP -resetPasswordExpires");
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    next(error);
+  }
+};
+
 export const forgotPassword = async (
   req: Request,
   res: Response,
