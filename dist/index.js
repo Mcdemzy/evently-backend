@@ -61,8 +61,8 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
             process.exit(0);
         });
     });
-    process.on("SIGINT", shutdown); // Handle Ctrl+C
-    process.on("SIGTERM", shutdown); // Handle termination signals
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
 });
 startServer().catch((error) => {
     console.error("Failed to start server:", error);

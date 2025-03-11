@@ -18,14 +18,15 @@ const allowedOrigins = [
     "http://localhost:5173", // Local development
     "https://evently-ems.vercel.app", // Deployed frontend
 ];
-app.use((0, cors_1.default)({
+const corsOptions = {
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Add OPTIONS for preflight requests
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Include OPTIONS for preflight
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-}));
-// Handle preflight requests
-app.options("*", (0, cors_1.default)()); // Allow all preflight requests
+};
+app.use((0, cors_1.default)(corsOptions));
+// ✅ Handle preflight (OPTIONS) requests with the same CORS configuration
+app.options("*", (0, cors_1.default)(corsOptions));
 // Security middleware
 app.use((0, helmet_1.default)({
     crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin requests
