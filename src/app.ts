@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -8,16 +8,10 @@ import eventRoutes from "./routes/eventRoutes";
 
 const app = express();
 
-// Enable trust proxy
+// ✅ Enable trust proxy (Fixes rate-limit issue)
 app.set("trust proxy", 1);
 
-// Log incoming origins for debugging
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log("Incoming Origin:", req.headers.origin);
-  next();
-});
-
-// Configure CORS
+// ✅ Configure CORS to allow requests from frontend URLs
 const allowedOrigins = [
   "http://localhost:5173", // Local development
   "https://evently-ems.vercel.app", // Deployed frontend
@@ -26,19 +20,19 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Add OPTIONS for preflight requests
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
 // Handle preflight requests
-app.options("*", cors());
+app.options("*", cors()); // Allow all preflight requests
 
 // Security middleware
 app.use(
   helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginResourcePolicy: { policy: "cross-origin" }, // Allow cross-origin requests
   })
 );
 
@@ -56,24 +50,30 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Default route
-app.get("/", (req: Request, res: Response) => {
+// Default route for testing deployment
+app.get("/", (req, res) => {
   res.status(200).json({ message: "Evently Backend API is running 🚀" });
 });
 
 // API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
-
-// 404 Handler
-app.use((req: Request, res: Response) => {
+// 404 Handler for undefined routes
+app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
 
 // Global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error("Unhandled Error:", err);
-  res.status(500).json({ message: "Internal Server Error" });
-});
+app.use(
+  (
+    err: Error,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+  ) => {
+    console.error("Unhandled Error:", err);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+);
 
 export default app;
