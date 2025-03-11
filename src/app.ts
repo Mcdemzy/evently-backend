@@ -58,6 +58,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
+
 // 404 Handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
