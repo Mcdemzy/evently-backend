@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import mongoose, { ConnectOptions } from "mongoose";
+import mongoose from "mongoose";
 import app from "./app";
 
 // Load environment variables
@@ -20,20 +20,15 @@ if (!DB_NAME) {
   process.exit(1);
 }
 
-// MongoDB Connection Options
-const mongooseOptions: ConnectOptions = {
-  dbName: DB_NAME,
-  retryWrites: true,
-  w: "majority" as const,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-};
-
 // Connect to MongoDB
 const connectDB = async () => {
   try {
-    console.log("Attempting to connect to MongoDB...");
-    await mongoose.connect(MONGO_URI, mongooseOptions);
+    console.log("Attempting to connect to MongoDB..."); // Debugging: Log connection attempt
+    await mongoose.connect(MONGO_URI, {
+      dbName: DB_NAME,
+      retryWrites: true,
+      w: "majority",
+    });
     console.log(`✅ Connected to MongoDB database: ${DB_NAME}`);
   } catch (error) {
     console.error("❌ MongoDB Connection Error:", error);
@@ -43,7 +38,7 @@ const connectDB = async () => {
 
 // Start the server
 const startServer = async () => {
-  await connectDB();
+  await connectDB(); // Ensure database is connected before starting the server
   const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });

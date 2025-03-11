@@ -17,17 +17,17 @@ const allowedOrigins = [
   "https://evently-ems.vercel.app", // Deployed frontend
 ];
 
-const corsOptions = {
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Include OPTIONS for preflight
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Add OPTIONS for preflight requests
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
-app.use(cors(corsOptions));
-
-// ✅ Handle preflight (OPTIONS) requests with the same CORS configuration
-app.options("*", cors(corsOptions));
+// Handle preflight requests
+app.options("*", cors()); // Allow all preflight requests
 
 // Security middleware
 app.use(
@@ -58,7 +58,6 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
-
 // 404 Handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
