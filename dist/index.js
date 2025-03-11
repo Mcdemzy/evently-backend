@@ -29,15 +29,19 @@ if (!DB_NAME) {
     console.error("Error: DB_NAME is not defined in environment variables.");
     process.exit(1);
 }
+// MongoDB Connection Options
+const mongooseOptions = {
+    dbName: DB_NAME,
+    retryWrites: true,
+    w: "majority",
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+};
 // Connect to MongoDB
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("Attempting to connect to MongoDB..."); // Debugging: Log connection attempt
-        yield mongoose_1.default.connect(MONGO_URI, {
-            dbName: DB_NAME,
-            retryWrites: true,
-            w: "majority",
-        });
+        console.log("Attempting to connect to MongoDB...");
+        yield mongoose_1.default.connect(MONGO_URI, mongooseOptions);
         console.log(`✅ Connected to MongoDB database: ${DB_NAME}`);
     }
     catch (error) {
@@ -47,7 +51,7 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 // Start the server
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
-    yield connectDB(); // Ensure database is connected before starting the server
+    yield connectDB();
     const server = app_1.default.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
     });
