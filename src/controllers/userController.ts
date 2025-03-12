@@ -67,7 +67,7 @@ export const registerUser = async (
     await newUser.save();
 
     // Send verification email
-    const verificationLink = `http://yourapp.com/verify-email?token=${emailVerificationToken}`;
+    const verificationLink = `https://evently-ems-backend.vercel.app/verify-email?token=${emailVerificationToken}`;
     const emailText = `Click the link to verify your email: ${verificationLink}`;
     const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
 
