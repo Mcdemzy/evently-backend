@@ -6,6 +6,8 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
+  isVerified: boolean;
+  emailVerificationToken?: string; // Optional field
   resetPasswordOTP?: string;
   resetPasswordExpires?: number;
   createdAt: Date;
@@ -18,6 +20,8 @@ const userSchema = new Schema<IUser>(
     username: { type: String, required: true, unique: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String }, // Optional field
     resetPasswordOTP: { type: String },
     resetPasswordExpires: { type: Number },
     createdAt: { type: Date, default: Date.now },

@@ -7,12 +7,14 @@ import {
   verifyOTP,
   getCurrentUser,
   updateUser,
+  verifyEmail,
 } from "../controllers/userController";
 
 const router = Router();
 
 // Public routes
 router.post("/register", registerUser);
+router.get("/verify-email", verifyEmail);
 router.post("/login", loginUser);
 router.get("/me", getCurrentUser);
 router.put("/users/:id", updateUser);

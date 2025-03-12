@@ -52,17 +52,32 @@ export const registerUser = async (
     // Hash password securely
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate email verification token
+    const emailVerificationToken = crypto.randomBytes(20).toString("hex");
+
     const newUser: IUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       username: username.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
+      emailVerificationToken, // Save the token
     });
 
     await newUser.save();
 
-    handleResponse(res, 201, "User registered successfully.");
+    // Send verification email
+    const verificationLink = `http://yourapp.com/verify-email?token=${emailVerificationToken}`;
+    const emailText = `Click the link to verify your email: ${verificationLink}`;
+    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+
+    await sendEmail(newUser.email, "Verify Your Email", emailText, emailHtml);
+
+    handleResponse(
+      res,
+      201,
+      "User registered successfully. Please check your email to verify your account."
+    );
   } catch (error: any) {
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyPattern)[0];
@@ -75,6 +90,33 @@ export const registerUser = async (
       console.error("Error registering user:", error);
       next(error);
     }
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { token } = req.query;
+
+  try {
+    const user = await User.findOne({ emailVerificationToken: token });
+
+    if (!user) {
+      handleResponse(res, 400, "Invalid or expired verification token.");
+      return;
+    }
+
+    // Mark the user as verified and clear the token
+    user.isVerified = true;
+    user.emailVerificationToken = undefined; // Now allowed because the field is optional
+    await user.save();
+
+    handleResponse(res, 200, "Email verified successfully.");
+  } catch (error) {
+    console.error("Error verifying email:", error);
+    next(error);
   }
 };
 
@@ -96,6 +138,12 @@ export const loginUser = async (
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 400, "Invalid email or password.");
+      return;
+    }
+
+    // Check if email is verified
+    if (!user.isVerified) {
+      handleResponse(res, 400, "Please verify your email before logging in.");
       return;
     }
 
