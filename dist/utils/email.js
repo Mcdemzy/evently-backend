@@ -17,26 +17,27 @@ const nodemailer_1 = __importDefault(require("nodemailer"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const transporter = nodemailer_1.default.createTransport({
-    service: "gmail", // Use your email service (e.g., Gmail, SendGrid)
+    service: "gmail",
     auth: {
-        user: process.env.EMAIL_USER, // Your email address
-        pass: process.env.EMAIL_PASS, // Your email password or app-specific password
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
     },
 });
-const sendEmail = (to, subject, text) => __awaiter(void 0, void 0, void 0, function* () {
-    const mailOptions = {
-        from: process.env.EMAIL_USER,
-        to,
-        subject,
-        text,
-    };
+const sendEmail = (to, subject, text, html) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to,
+            subject,
+            text,
+            html,
+        };
         yield transporter.sendMail(mailOptions);
         console.log(`Email sent to ${to}`);
     }
     catch (error) {
         console.error("Error sending email:", error);
-        throw new Error("Failed to send email");
+        throw error;
     }
 });
 exports.sendEmail = sendEmail;

@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.updateUser = exports.getCurrentUser = exports.loginUser = exports.registerUser = void 0;
+exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.updateUser = exports.getCurrentUser = exports.loginUser = exports.verifyEmail = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
@@ -42,15 +42,23 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         }
         // Hash password securely
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+        // Generate email verification token
+        const emailVerificationToken = crypto_1.default.randomBytes(20).toString("hex");
         const newUser = new userModel_1.default({
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             username: username.trim(),
             email: email.toLowerCase().trim(),
             password: hashedPassword,
+            emailVerificationToken, // Save the token
         });
         yield newUser.save();
-        handleResponse(res, 201, "User registered successfully.");
+        // Send verification email
+        const verificationLink = `https://evently-ems-backend.vercel.app/verify-email?token=${emailVerificationToken}`;
+        const emailText = `Click the link to verify your email: ${verificationLink}`;
+        const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+        yield (0, email_1.sendEmail)(newUser.email, "Verify Your Email", emailText, emailHtml);
+        handleResponse(res, 201, "User registered successfully. Please check your email to verify your account.");
     }
     catch (error) {
         if (error.code === 11000) {
@@ -64,6 +72,26 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.registerUser = registerUser;
+const verifyEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { token } = req.query;
+    try {
+        const user = yield userModel_1.default.findOne({ emailVerificationToken: token });
+        if (!user) {
+            handleResponse(res, 400, "Invalid or expired verification token.");
+            return;
+        }
+        // Mark the user as verified and clear the token
+        user.isVerified = true;
+        user.emailVerificationToken = undefined; // Now allowed because the field is optional
+        yield user.save();
+        handleResponse(res, 200, "Email verified successfully.");
+    }
+    catch (error) {
+        console.error("Error verifying email:", error);
+        next(error);
+    }
+});
+exports.verifyEmail = verifyEmail;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
@@ -76,6 +104,11 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 400, "Invalid email or password.");
+            return;
+        }
+        // Check if email is verified
+        if (!user.isVerified) {
+            handleResponse(res, 400, "Please verify your email before logging in.");
             return;
         }
         // Validate password
