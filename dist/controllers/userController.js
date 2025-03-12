@@ -54,7 +54,7 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         });
         yield newUser.save();
         // Send verification email
-        const verificationLink = `https://evently-ems-backend.vercel.app/verify-email?token=${emailVerificationToken}`;
+        const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
         const emailText = `Click the link to verify your email: ${verificationLink}`;
         const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
         yield (0, email_1.sendEmail)(newUser.email, "Verify Your Email", emailText, emailHtml);
