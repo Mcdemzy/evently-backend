@@ -42,15 +42,17 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         }
         // Hash password securely
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
-        // Generate email verification token
+        // Generate email verification token and set expiry time (24 hours)
         const emailVerificationToken = crypto_1.default.randomBytes(20).toString("hex");
+        const emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
         const newUser = new userModel_1.default({
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             username: username.trim(),
             email: email.toLowerCase().trim(),
             password: hashedPassword,
-            emailVerificationToken, // Save the token
+            emailVerificationToken,
+            emailVerificationExpires,
         });
         yield newUser.save();
         // Send verification email
@@ -74,15 +76,21 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
 exports.registerUser = registerUser;
 const verifyEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { token } = req.query;
+    console.log("Token received:", token); // Log the token
     try {
-        const user = yield userModel_1.default.findOne({ emailVerificationToken: token });
+        const user = yield userModel_1.default.findOne({
+            emailVerificationToken: token,
+            emailVerificationExpires: { $gt: Date.now() }, // Check if token is not expired
+        });
         if (!user) {
+            console.log("User not found for token:", token); // Log if user is not found
             handleResponse(res, 400, "Invalid or expired verification token.");
             return;
         }
         // Mark the user as verified and clear the token
         user.isVerified = true;
-        user.emailVerificationToken = undefined; // Now allowed because the field is optional
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
         yield user.save();
         handleResponse(res, 200, "Email verified successfully.");
     }
