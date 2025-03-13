@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const dotenv_1 = __importDefault(require("dotenv"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const app_1 = __importDefault(require("./app"));
+const errorHandler_1 = require("./middlewares/errorHandler");
 // Load environment variables
 dotenv_1.default.config();
 const PORT = process.env.PORT || 5000;
@@ -48,6 +49,8 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
 // Start the server
 const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     yield connectDB(); // Ensure database is connected before starting the server
+    // Add the error-handling middleware
+    app_1.default.use(errorHandler_1.errorHandler);
     const server = app_1.default.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
     });

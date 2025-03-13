@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.updateUser = exports.getCurrentUser = exports.loginUser = exports.verifyEmail = exports.registerUser = void 0;
+exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.updateUser = exports.getCurrentUser = exports.loginUser = exports.resendVerificationEmail = exports.verifyEmail = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
@@ -92,6 +92,37 @@ const verifyEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, functi
     }
 });
 exports.verifyEmail = verifyEmail;
+const resendVerificationEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    try {
+        // Check if the user exists
+        const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            handleResponse(res, 404, "User not found.");
+            return;
+        }
+        // Check if the user is already verified
+        if (user.isVerified) {
+            handleResponse(res, 400, "Email is already verified.");
+            return;
+        }
+        // Generate a new verification token
+        const emailVerificationToken = crypto_1.default.randomBytes(20).toString("hex");
+        user.emailVerificationToken = emailVerificationToken;
+        yield user.save();
+        // Send the verification email
+        const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+        const emailText = `Click the link to verify your email: ${verificationLink}`;
+        const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+        yield (0, email_1.sendEmail)(user.email, "Verify Your Email", emailText, emailHtml);
+        handleResponse(res, 200, "Verification email sent successfully.");
+    }
+    catch (error) {
+        console.error("Error resending verification email:", error);
+        next(error);
+    }
+});
+exports.resendVerificationEmail = resendVerificationEmail;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
@@ -178,6 +209,11 @@ exports.updateUser = updateUser;
 const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email } = req.body;
     try {
+        // Validate email
+        if (!email) {
+            handleResponse(res, 400, "Email is required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");
@@ -185,7 +221,7 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         }
         const otp = crypto_1.default.randomInt(100000, 999999).toString();
         user.resetPasswordOTP = otp;
-        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         yield user.save();
         const subject = "Password Reset OTP";
         const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
@@ -201,6 +237,11 @@ exports.forgotPassword = forgotPassword;
 const verifyOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, otp } = req.body;
     try {
+        // Validate input fields
+        if (!email || !otp) {
+            handleResponse(res, 400, "Email and OTP are required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");
@@ -225,6 +266,11 @@ exports.verifyOTP = verifyOTP;
 const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, newPassword } = req.body;
     try {
+        // Validate input fields
+        if (!email || !newPassword) {
+            handleResponse(res, 400, "Email and new password are required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");
