@@ -120,6 +120,46 @@ export const verifyEmail = async (
   }
 };
 
+export const resendVerificationEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { email } = req.body;
+
+  try {
+    // Check if the user exists
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      handleResponse(res, 404, "User not found.");
+      return;
+    }
+
+    // Check if the user is already verified
+    if (user.isVerified) {
+      handleResponse(res, 400, "Email is already verified.");
+      return;
+    }
+
+    // Generate a new verification token
+    const emailVerificationToken = crypto.randomBytes(20).toString("hex");
+    user.emailVerificationToken = emailVerificationToken;
+    await user.save();
+
+    // Send the verification email
+    const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+    const emailText = `Click the link to verify your email: ${verificationLink}`;
+    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+
+    await sendEmail(user.email, "Verify Your Email", emailText, emailHtml);
+
+    handleResponse(res, 200, "Verification email sent successfully.");
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    next(error);
+  }
+};
+
 export const loginUser = async (
   req: Request,
   res: Response,
@@ -244,6 +284,12 @@ export const forgotPassword = async (
   const { email } = req.body;
 
   try {
+    // Validate email
+    if (!email) {
+      handleResponse(res, 400, "Email is required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");
@@ -252,7 +298,7 @@ export const forgotPassword = async (
 
     const otp = crypto.randomInt(100000, 999999).toString();
     user.resetPasswordOTP = otp;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
     const subject = "Password Reset OTP";
@@ -274,6 +320,12 @@ export const verifyOTP = async (
   const { email, otp } = req.body;
 
   try {
+    // Validate input fields
+    if (!email || !otp) {
+      handleResponse(res, 400, "Email and OTP are required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");
@@ -306,6 +358,12 @@ export const resetPassword = async (
   const { email, newPassword } = req.body;
 
   try {
+    // Validate input fields
+    if (!email || !newPassword) {
+      handleResponse(res, 400, "Email and new password are required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");
