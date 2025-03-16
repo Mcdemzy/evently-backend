@@ -365,7 +365,7 @@ export const forgotPassword = async (
         <p class="message">Use the OTP below to reset your password. This OTP is valid for 10 minutes.</p>
         <div class="otp">${otp}</div>
         <p class="message">If you did not request this, please ignore this email.</p>
-        <div class="footer">&copy; 2025 Your Company. All rights reserved.</div>
+        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
     </div>
 </body>
 </html>`;
