@@ -23,7 +23,6 @@ export const sendEmail = async (
       from: process.env.EMAIL_USER,
       to,
       subject,
-      text,
       html,
     };
 
