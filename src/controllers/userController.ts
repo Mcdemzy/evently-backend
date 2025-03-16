@@ -311,6 +311,8 @@ export const forgotPassword = async (
     await user.save();
 
     const subject = "Password Reset OTP";
+    const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
+
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -361,14 +363,15 @@ export const forgotPassword = async (
     <div class="container">
         <div class="header">Password Reset Request</div>
         <p class="message">Use the OTP below to reset your password. This OTP is valid for 10 minutes.</p>
-        <div class="otp">{OTP}</div>
+        <div class="otp">${otp}</div>
         <p class="message">If you did not request this, please ignore this email.</p>
-        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
+        <div class="footer">&copy; 2025 Your Company. All rights reserved.</div>
     </div>
 </body>
-</html>
-`.replace("{OTP}", otp);
-    await sendEmail(user.email, subject, html);
+</html>`;
+
+    // Pass both text and html to the function
+    await sendEmail(user.email, subject, text, html);
 
     handleResponse(res, 200, "OTP sent to your email.");
   } catch (error) {
@@ -376,6 +379,7 @@ export const forgotPassword = async (
     next(error);
   }
 };
+
 
 export const verifyOTP = async (
   req: Request,
