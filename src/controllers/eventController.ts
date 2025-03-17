@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Event from "../models/eventModel";
-
+// import { AuthRequest } from "../middleware/authMiddleware";
 // Create an event
 export const createEvent = async (req: Request, res: Response) => {
   try {
