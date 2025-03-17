@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User, { IUser } from "../models/userModel";
-
 import { sendEmail } from "../utils/email";
 import crypto from "crypto";
 
@@ -53,17 +52,34 @@ export const registerUser = async (
     // Hash password securely
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate email verification token and set expiry time (24 hours)
+    const emailVerificationToken = crypto.randomBytes(20).toString("hex");
+    const emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
     const newUser: IUser = new User({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       username: username.trim(),
       email: email.toLowerCase().trim(),
       password: hashedPassword,
+      emailVerificationToken,
+      emailVerificationExpires,
     });
 
     await newUser.save();
 
-    handleResponse(res, 201, "User registered successfully.");
+    // Send verification email
+    const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+    const emailText = `Click the link to verify your email: ${verificationLink}`;
+    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+
+    await sendEmail(newUser.email, "Verify Your Email", emailText, emailHtml);
+
+    handleResponse(
+      res,
+      201,
+      "User registered successfully. Please check your email to verify your account."
+    );
   } catch (error: any) {
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyPattern)[0];
@@ -76,6 +92,80 @@ export const registerUser = async (
       console.error("Error registering user:", error);
       next(error);
     }
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { token } = req.query;
+
+  console.log("Token received:", token); // Log the token
+
+  try {
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() }, // Check if token is not expired
+    });
+
+    if (!user) {
+      console.log("User not found for token:", token); // Log if user is not found
+      handleResponse(res, 400, "Invalid or expired verification token.");
+      return;
+    }
+
+    // Mark the user as verified and clear the token
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    handleResponse(res, 200, "Email verified successfully.");
+  } catch (error) {
+    console.error("Error verifying email:", error);
+    next(error);
+  }
+};
+
+export const resendVerificationEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { email } = req.body;
+
+  try {
+    // Check if the user exists
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      handleResponse(res, 404, "User not found.");
+      return;
+    }
+
+    // Check if the user is already verified
+    if (user.isVerified) {
+      handleResponse(res, 400, "Email is already verified.");
+      return;
+    }
+
+    // Generate a new verification token
+    const emailVerificationToken = crypto.randomBytes(20).toString("hex");
+    user.emailVerificationToken = emailVerificationToken;
+    await user.save();
+
+    // Send the verification email
+    const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+    const emailText = `Click the link to verify your email: ${verificationLink}`;
+    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+
+    await sendEmail(user.email, "Verify Your Email", emailText, emailHtml);
+
+    handleResponse(res, 200, "Verification email sent successfully.");
+  } catch (error) {
+    console.error("Error resending verification email:", error);
+    next(error);
   }
 };
 
@@ -97,6 +187,12 @@ export const loginUser = async (
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 400, "Invalid email or password.");
+      return;
+    }
+
+    // Check if email is verified
+    if (!user.isVerified) {
+      handleResponse(res, 400, "Please verify your email before logging in.");
       return;
     }
 
@@ -130,6 +226,65 @@ export const loginUser = async (
   }
 };
 
+export const getCurrentUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
+      userId: string;
+    };
+
+    const user = await User.findById(decoded.userId).select(
+      "-password -resetPasswordOTP -resetPasswordExpires"
+    );
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+    next(error);
+  }
+};
+
+export const updateUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  const { id } = req.params;
+  const { firstName, lastName, username, email } = req.body;
+
+  try {
+    const user = await User.findByIdAndUpdate(
+      id,
+      { firstName, lastName, username, email },
+      { new: true }
+    ).select("-password -resetPasswordOTP -resetPasswordExpires");
+
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    next(error);
+  }
+};
+
 export const forgotPassword = async (
   req: Request,
   res: Response,
@@ -138,6 +293,12 @@ export const forgotPassword = async (
   const { email } = req.body;
 
   try {
+    // Validate email
+    if (!email) {
+      handleResponse(res, 400, "Email is required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");
@@ -146,12 +307,71 @@ export const forgotPassword = async (
 
     const otp = crypto.randomInt(100000, 999999).toString();
     user.resetPasswordOTP = otp;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
     await user.save();
 
     const subject = "Password Reset OTP";
     const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
-    await sendEmail(user.email, subject, text);
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset OTP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 5px solid #624CF5;
+        }
+        .header {
+            color: #6440EB;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .otp {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FA776C;
+            margin: 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .footer {
+            font-size: 14px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Password Reset Request</div>
+        <p class="message">Use the OTP below to reset your password. This OTP is valid for 10 minutes.</p>
+        <div class="otp">${otp}</div>
+        <p class="message">If you did not request this, please ignore this email.</p>
+        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
+    </div>
+</body>
+</html>`;
+
+    // Pass both text and html to the function
+    await sendEmail(user.email, subject, text, html);
 
     handleResponse(res, 200, "OTP sent to your email.");
   } catch (error) {
@@ -159,6 +379,7 @@ export const forgotPassword = async (
     next(error);
   }
 };
+
 
 export const verifyOTP = async (
   req: Request,
@@ -168,6 +389,12 @@ export const verifyOTP = async (
   const { email, otp } = req.body;
 
   try {
+    // Validate input fields
+    if (!email || !otp) {
+      handleResponse(res, 400, "Email and OTP are required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");
@@ -200,6 +427,12 @@ export const resetPassword = async (
   const { email, newPassword } = req.body;
 
   try {
+    // Validate input fields
+    if (!email || !newPassword) {
+      handleResponse(res, 400, "Email and new password are required.");
+      return;
+    }
+
     const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
       handleResponse(res, 404, "User not found.");

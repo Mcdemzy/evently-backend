@@ -40,6 +40,9 @@ const userSchema = new mongoose_1.Schema({
     username: { type: String, required: true, unique: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true },
     password: { type: String, required: true },
+    isVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    emailVerificationExpires: { type: Date }, // Add this field
     resetPasswordOTP: { type: String },
     resetPasswordExpires: { type: Number },
     createdAt: { type: Date, default: Date.now },

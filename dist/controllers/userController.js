@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.loginUser = exports.registerUser = void 0;
+exports.resetPassword = exports.verifyOTP = exports.forgotPassword = exports.updateUser = exports.getCurrentUser = exports.loginUser = exports.resendVerificationEmail = exports.verifyEmail = exports.registerUser = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const userModel_1 = __importDefault(require("../models/userModel"));
@@ -42,15 +42,25 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         }
         // Hash password securely
         const hashedPassword = yield bcryptjs_1.default.hash(password, 10);
+        // Generate email verification token and set expiry time (24 hours)
+        const emailVerificationToken = crypto_1.default.randomBytes(20).toString("hex");
+        const emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
         const newUser = new userModel_1.default({
             firstName: firstName.trim(),
             lastName: lastName.trim(),
             username: username.trim(),
             email: email.toLowerCase().trim(),
             password: hashedPassword,
+            emailVerificationToken,
+            emailVerificationExpires,
         });
         yield newUser.save();
-        handleResponse(res, 201, "User registered successfully.");
+        // Send verification email
+        const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+        const emailText = `Click the link to verify your email: ${verificationLink}`;
+        const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+        yield (0, email_1.sendEmail)(newUser.email, "Verify Your Email", emailText, emailHtml);
+        handleResponse(res, 201, "User registered successfully. Please check your email to verify your account.");
     }
     catch (error) {
         if (error.code === 11000) {
@@ -64,6 +74,63 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     }
 });
 exports.registerUser = registerUser;
+const verifyEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { token } = req.query;
+    console.log("Token received:", token); // Log the token
+    try {
+        const user = yield userModel_1.default.findOne({
+            emailVerificationToken: token,
+            emailVerificationExpires: { $gt: Date.now() }, // Check if token is not expired
+        });
+        if (!user) {
+            console.log("User not found for token:", token); // Log if user is not found
+            handleResponse(res, 400, "Invalid or expired verification token.");
+            return;
+        }
+        // Mark the user as verified and clear the token
+        user.isVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+        yield user.save();
+        handleResponse(res, 200, "Email verified successfully.");
+    }
+    catch (error) {
+        console.error("Error verifying email:", error);
+        next(error);
+    }
+});
+exports.verifyEmail = verifyEmail;
+const resendVerificationEmail = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { email } = req.body;
+    try {
+        // Check if the user exists
+        const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            handleResponse(res, 404, "User not found.");
+            return;
+        }
+        // Check if the user is already verified
+        if (user.isVerified) {
+            handleResponse(res, 400, "Email is already verified.");
+            return;
+        }
+        // Generate a new verification token
+        const emailVerificationToken = crypto_1.default.randomBytes(20).toString("hex");
+        user.emailVerificationToken = emailVerificationToken;
+        yield user.save();
+        // Send the verification email
+        const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
+        const emailText = `Click the link to verify your email: ${verificationLink}`;
+        const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+        yield (0, email_1.sendEmail)(user.email, "Verify Your Email", emailText, emailHtml);
+        handleResponse(res, 200, "Verification email sent successfully.");
+    }
+    catch (error) {
+        console.error("Error resending verification email:", error);
+        next(error);
+    }
+});
+exports.resendVerificationEmail = resendVerificationEmail;
 const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
@@ -76,6 +143,11 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 400, "Invalid email or password.");
+            return;
+        }
+        // Check if email is verified
+        if (!user.isVerified) {
+            handleResponse(res, 400, "Please verify your email before logging in.");
             return;
         }
         // Validate password
@@ -103,9 +175,53 @@ const loginUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function
     }
 });
 exports.loginUser = loginUser;
+const getCurrentUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    try {
+        const token = (_a = req.header("Authorization")) === null || _a === void 0 ? void 0 : _a.replace("Bearer ", "");
+        if (!token) {
+            res.status(401).json({ message: "Unauthorized" });
+            return;
+        }
+        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
+        const user = yield userModel_1.default.findById(decoded.userId).select("-password -resetPasswordOTP -resetPasswordExpires");
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        res.status(200).json({ user });
+    }
+    catch (error) {
+        console.error("Error fetching user data:", error);
+        next(error);
+    }
+});
+exports.getCurrentUser = getCurrentUser;
+const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { firstName, lastName, username, email } = req.body;
+    try {
+        const user = yield userModel_1.default.findByIdAndUpdate(id, { firstName, lastName, username, email }, { new: true }).select("-password -resetPasswordOTP -resetPasswordExpires");
+        if (!user) {
+            res.status(404).json({ message: "User not found" });
+            return;
+        }
+        res.status(200).json({ user });
+    }
+    catch (error) {
+        console.error("Error updating user:", error);
+        next(error);
+    }
+});
+exports.updateUser = updateUser;
 const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email } = req.body;
     try {
+        // Validate email
+        if (!email) {
+            handleResponse(res, 400, "Email is required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");
@@ -113,7 +229,7 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         }
         const otp = crypto_1.default.randomInt(100000, 999999).toString();
         user.resetPasswordOTP = otp;
-        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+        user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
         yield user.save();
         const subject = "Password Reset OTP";
         const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
@@ -129,6 +245,11 @@ exports.forgotPassword = forgotPassword;
 const verifyOTP = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, otp } = req.body;
     try {
+        // Validate input fields
+        if (!email || !otp) {
+            handleResponse(res, 400, "Email and OTP are required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");
@@ -153,6 +274,11 @@ exports.verifyOTP = verifyOTP;
 const resetPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, newPassword } = req.body;
     try {
+        // Validate input fields
+        if (!email || !newPassword) {
+            handleResponse(res, 400, "Email and new password are required.");
+            return;
+        }
         const user = yield userModel_1.default.findOne({ email: email.toLowerCase().trim() });
         if (!user) {
             handleResponse(res, 404, "User not found.");

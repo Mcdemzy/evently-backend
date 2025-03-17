@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import app from "./app";
+import { errorHandler } from "./middlewares/errorHandler";
 
 // Load environment variables
 dotenv.config();
@@ -39,6 +40,10 @@ const connectDB = async () => {
 // Start the server
 const startServer = async () => {
   await connectDB(); // Ensure database is connected before starting the server
+
+  // Add the error-handling middleware
+  app.use(errorHandler);
+
   const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
   });
@@ -54,8 +59,8 @@ const startServer = async () => {
     });
   };
 
-  process.on("SIGINT", shutdown); // Handle Ctrl+C
-  process.on("SIGTERM", shutdown); // Handle termination signals
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 };
 
 startServer().catch((error) => {
