@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import Ticket from "../models/ticketModel";
-import EventModel from "../models/eventModel"; // Rename the import
+import EventModel from "../models/eventModel";
 
 // Create a Ticket
 export const createTicket = async (
@@ -80,12 +80,15 @@ export const getTickets = async (_req: Request, res: Response) => {
 };
 
 // Get a Ticket by ID
-export const getTicketById = async (req: Request, res: Response) => {
+export const getTicketById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const ticket = await Ticket.findById(id);
     if (!ticket) {
-      return res.status(404).json({ message: "Ticket not found" });
+      res.status(404).json({ message: "Ticket not found" });
     }
     res.status(200).json(ticket);
   } catch (error: unknown) {
@@ -98,12 +101,15 @@ export const getTicketById = async (req: Request, res: Response) => {
 };
 
 // Update a Ticket
-export const updateTicket = async (req: Request, res: Response) => {
+export const updateTicket = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const ticket = await Ticket.findByIdAndUpdate(id, req.body, { new: true });
     if (!ticket) {
-      return res.status(404).json({ message: "Ticket not found" });
+      res.status(404).json({ message: "Ticket not found" });
     }
     res.status(200).json({ message: "Ticket updated successfully", ticket });
   } catch (error: unknown) {
@@ -116,12 +122,15 @@ export const updateTicket = async (req: Request, res: Response) => {
 };
 
 // Delete a Ticket
-export const deleteTicket = async (req: Request, res: Response) => {
+export const deleteTicket = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   try {
     const { id } = req.params;
     const ticket = await Ticket.findByIdAndDelete(id);
     if (!ticket) {
-      return res.status(404).json({ message: "Ticket not found" });
+      res.status(404).json({ message: "Ticket not found" });
     }
     res.status(200).json({ message: "Ticket deleted successfully" });
   } catch (error: unknown) {
