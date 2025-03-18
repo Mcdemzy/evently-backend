@@ -5,6 +5,7 @@ import rateLimit from "express-rate-limit";
 import morgan from "morgan";
 import userRoutes from "./routes/userRoutes";
 import eventRoutes from "./routes/eventRoutes";
+import ticketRoutes from "./routes/ticketRoutes";
 
 const app = express();
 
@@ -58,7 +59,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
-
+app.use("/api/tickets", ticketRoutes);
 // 404 Handler for undefined routes
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

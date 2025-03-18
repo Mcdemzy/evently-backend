@@ -13,18 +13,28 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authMiddleware = void 0;
+//@ts-nocheck
+// your previous code starts here
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-// Correct the type to `RequestHandler`
 const authMiddleware = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const authHeader = req.header("Authorization");
-    const token = authHeader === null || authHeader === void 0 ? void 0 : authHeader.split(" ")[1];
-    if (!token) {
-        res.status(401).json({ message: "Access denied. No token provided." });
-        return;
-    }
+    var _a;
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            res.status(401).json({ message: "No token provided" });
+            return;
+        }
+        const token = authHeader.split(" ")[1];
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // Attach decoded user to the request object
+        if (!decoded.userId || !decoded.email) {
+            res.status(401).json({ message: "Invalid token structure." });
+            return;
+        }
+        req.user = {
+            id: decoded.userId,
+            email: decoded.email,
+            username: (_a = decoded.username) !== null && _a !== void 0 ? _a : "defaultUsername",
+        };
         next();
     }
     catch (error) {

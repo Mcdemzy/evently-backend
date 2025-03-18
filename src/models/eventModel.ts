@@ -2,17 +2,18 @@ import mongoose, { Schema, Document } from "mongoose";
 
 interface IEvent extends Document {
   eventName: string;
-  category: string; // Selected from frontend dropdown
+  category: string;
   description: string;
   startDate: Date;
   endDate: Date;
-  startTime: string; // Store time as string (e.g., "14:00")
+  startTime: string;
   endTime: string;
   eventLocation: "physical" | "online" | "both";
   country?: string;
   state?: string;
   location?: string;
   url?: string;
+  createdBy: mongoose.Schema.Types.ObjectId;
 }
 
 const EventSchema = new Schema<IEvent>(
@@ -52,6 +53,11 @@ const EventSchema = new Schema<IEvent>(
       required: function () {
         return this.eventLocation === "online";
       },
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
   { timestamps: true }

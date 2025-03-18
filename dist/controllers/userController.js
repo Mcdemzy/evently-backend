@@ -233,7 +233,64 @@ const forgotPassword = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
         yield user.save();
         const subject = "Password Reset OTP";
         const text = `Your OTP for password reset is: ${otp}. This OTP is valid for 10 minutes.`;
-        yield (0, email_1.sendEmail)(user.email, subject, text);
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset OTP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 5px solid #624CF5;
+        }
+        .header {
+            color: #6440EB;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .otp {
+            font-size: 28px;
+            font-weight: bold;
+            color: #FA776C;
+            margin: 20px 0;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        .footer {
+            font-size: 14px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Password Reset Request</div>
+        <p class="message">Use the OTP below to reset your password. This OTP is valid for 10 minutes.</p>
+        <div class="otp">${otp}</div>
+        <p class="message">If you did not request this, please ignore this email.</p>
+        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
+    </div>
+</body>
+</html>`;
+        // Pass both text and html to the function
+        yield (0, email_1.sendEmail)(user.email, subject, text, html);
         handleResponse(res, 200, "OTP sent to your email.");
     }
     catch (error) {
