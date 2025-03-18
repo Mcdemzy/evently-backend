@@ -10,6 +10,7 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const morgan_1 = __importDefault(require("morgan"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
 const eventRoutes_1 = __importDefault(require("./routes/eventRoutes"));
+const ticketRoutes_1 = __importDefault(require("./routes/ticketRoutes"));
 const app = (0, express_1.default)();
 // ✅ Enable trust proxy (Fixes rate-limit issue)
 app.set("trust proxy", 1);
@@ -48,6 +49,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/users", userRoutes_1.default);
 app.use("/api/events", eventRoutes_1.default);
+app.use("/api/tickets", ticketRoutes_1.default);
 // 404 Handler for undefined routes
 app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });

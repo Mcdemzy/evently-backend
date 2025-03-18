@@ -14,27 +14,42 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteEvent = exports.updateEvent = exports.getEventById = exports.getEvents = exports.createEvent = void 0;
 const eventModel_1 = __importDefault(require("../models/eventModel"));
-// Create an event
 const createEvent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const event = new eventModel_1.default(req.body);
+        if (!req.user || !req.user.id) {
+            res.status(401).json({ message: "User not authenticated." });
+            return;
+        }
+        const { eventName, category, description, startDate, endDate, startTime, endTime, eventLocation, country, state, location, url, } = req.body;
+        const event = new eventModel_1.default({
+            eventName,
+            category,
+            description,
+            startDate,
+            endDate,
+            startTime,
+            endTime,
+            eventLocation,
+            country,
+            state,
+            location,
+            url,
+            createdBy: req.user.id,
+        });
         yield event.save();
         res.status(201).json({ message: "Event created successfully", event });
     }
     catch (error) {
-        if (error instanceof Error) {
-            res.status(500).json({ error: error.message });
-        }
-        else {
-            res.status(500).json({ error: "An unknown error occurred" });
-        }
+        res.status(500).json({
+            error: error instanceof Error ? error.message : "An unknown error occurred",
+        });
     }
 });
 exports.createEvent = createEvent;
 // Get all events
 const getEvents = (_req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const events = yield eventModel_1.default.find();
+        const events = yield eventModel_1.default.find().populate("createdBy", "firstName lastName email"); // Populate user details
         res.status(200).json(events);
     }
     catch (error) {
@@ -47,6 +62,18 @@ const getEvents = (_req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.getEvents = getEvents;
+// export const getEvents = async (_req: Request, res: Response) => {
+//   try {
+//     const events = await Event.find();
+//     res.status(200).json(events);
+//   } catch (error: unknown) {
+//     if (error instanceof Error) {
+//       res.status(500).json({ error: error.message });
+//     } else {
+//       res.status(500).json({ error: "An unknown error occurred" });
+//     }
+//   }
+// };
 // Get an event by ID
 const getEventById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
