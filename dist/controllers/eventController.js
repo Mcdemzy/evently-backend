@@ -62,18 +62,6 @@ const getEvents = (_req, res) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.getEvents = getEvents;
-// export const getEvents = async (_req: Request, res: Response) => {
-//   try {
-//     const events = await Event.find();
-//     res.status(200).json(events);
-//   } catch (error: unknown) {
-//     if (error instanceof Error) {
-//       res.status(500).json({ error: error.message });
-//     } else {
-//       res.status(500).json({ error: "An unknown error occurred" });
-//     }
-//   }
-// };
 // Get an event by ID
 const getEventById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
