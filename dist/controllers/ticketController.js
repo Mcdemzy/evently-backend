@@ -14,48 +14,59 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteTicket = exports.updateTicket = exports.getTicketById = exports.getTickets = exports.createTicket = void 0;
 const ticketModel_1 = __importDefault(require("../models/ticketModel"));
-const eventModel_1 = __importDefault(require("../models/eventModel")); // Rename the import
+const cloudinary_1 = require("../config/cloudinary");
+const mongoose_1 = __importDefault(require("mongoose"));
 // Create a Ticket
 const createTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { eventId, ticketName, ticketType, ticketStock, availableTickets, purchaseLimit, ticketPrice, benefits, ticketDescription, bank, accountNumber, accountName, socials, } = req.body;
-        // Ensure eventId is provided
-        if (!eventId) {
-            res.status(400).json({ error: "Event ID is required" });
-            return;
-        }
-        // Check if the event exists
-        const event = yield eventModel_1.default.findById(eventId);
-        if (!event) {
-            res.status(404).json({ error: "Event not found" });
-            return;
-        }
-        // Create a new ticket associated with the event
-        const ticket = new ticketModel_1.default({
-            eventId, // Link ticket to the event
-            ticketName,
-            ticketType,
-            ticketStock,
-            availableTickets,
-            purchaseLimit,
-            ticketPrice,
-            benefits,
-            ticketDescription,
-            bank,
-            accountNumber,
-            accountName,
-            socials,
-        });
-        yield ticket.save();
-        res.status(201).json({ message: "Ticket created successfully", ticket });
+        cloudinary_1.upload.single("image")(req, res, (err) => __awaiter(void 0, void 0, void 0, function* () {
+            if (err) {
+                return res.status(400).json({ success: false, message: err.message });
+            }
+            const { eventId, ticketName, ticketType, ticketStock, availableTickets, purchaseLimit, ticketPrice, benefits, ticketDescription, bank, accountNumber, accountName, socials, } = req.body;
+            // Validate eventId
+            if (!mongoose_1.default.Types.ObjectId.isValid(eventId)) {
+                res.status(400).json({ success: false, message: "Invalid event ID" });
+            }
+            let imageUrl = "";
+            // Upload to Cloudinary if an image is provided
+            if (req.file) {
+                const result = yield cloudinary_1.cloudinary.uploader.upload(req.file.path, {
+                    folder: "tickets",
+                });
+                imageUrl = result.secure_url;
+            }
+            // Create new ticket
+            const newTicket = new ticketModel_1.default({
+                eventId,
+                ticketName,
+                ticketType,
+                ticketStock,
+                availableTickets: ticketStock === "limited" ? availableTickets : undefined,
+                purchaseLimit,
+                ticketPrice: ticketType === "paid" ? ticketPrice : undefined,
+                benefits,
+                ticketDescription,
+                bank: ticketType === "paid" ? bank : undefined,
+                accountNumber: ticketType === "paid" ? accountNumber : undefined,
+                accountName: ticketType === "paid" ? accountName : undefined,
+                socials: socials || {}, // Ensure empty object if not provided
+                image: imageUrl, // Store Cloudinary image URL
+            });
+            yield newTicket.save();
+            res.status(201).json({
+                success: true,
+                message: "Ticket created successfully!",
+                ticket: newTicket,
+            });
+        }));
     }
     catch (error) {
-        if (error instanceof Error) {
-            res.status(500).json({ error: error.message });
-        }
-        else {
-            res.status(500).json({ error: "An unknown error occurred" });
-        }
+        console.error("Error creating ticket:", error);
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
     }
 });
 exports.createTicket = createTicket;
@@ -81,7 +92,7 @@ const getTicketById = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const { id } = req.params;
         const ticket = yield ticketModel_1.default.findById(id);
         if (!ticket) {
-            return res.status(404).json({ message: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         }
         res.status(200).json(ticket);
     }
@@ -101,7 +112,7 @@ const updateTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const { id } = req.params;
         const ticket = yield ticketModel_1.default.findByIdAndUpdate(id, req.body, { new: true });
         if (!ticket) {
-            return res.status(404).json({ message: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         }
         res.status(200).json({ message: "Ticket updated successfully", ticket });
     }
@@ -121,7 +132,7 @@ const deleteTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         const { id } = req.params;
         const ticket = yield ticketModel_1.default.findByIdAndDelete(id);
         if (!ticket) {
-            return res.status(404).json({ message: "Ticket not found" });
+            res.status(404).json({ message: "Ticket not found" });
         }
         res.status(200).json({ message: "Ticket deleted successfully" });
     }

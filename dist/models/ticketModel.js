@@ -84,62 +84,7 @@ const TicketSchema = new mongoose_1.Schema({
         facebook: { type: String },
         telegram: { type: String },
     },
+    image: { type: String },
 }, { timestamps: true });
 const Ticket = mongoose_1.default.model("Ticket", TicketSchema);
 exports.default = Ticket;
-// import mongoose, { Schema, Document } from "mongoose";
-// interface ITicket extends Document {
-//   eventId: mongoose.Types.ObjectId;
-//   ticketName: string;
-//   ticketType: "free" | "paid";
-//   ticketStock: "limited" | "unlimited";
-//   availableTickets?: number;
-//   purchaseLimit: number;
-//   ticketPrice?: number;
-//   benefits: string;
-//   ticketDescription: string;
-//   bank?: string;
-//   accountNumber?: number;
-//   accountName?: string;
-//   socials?: {
-//     webUrl?: string;
-//     twitter?: string;
-//     instagram?: string;
-//     whatsapp?: string;
-//     facebook?: string;
-//     telegram?: string;
-//   };
-//   createdBy: mongoose.Types.ObjectId; // Store the user who created the ticket
-// }
-// const TicketSchema = new Schema<ITicket>(
-//   {
-//     eventId: { type: Schema.Types.ObjectId, ref: "Event", required: true },
-//     ticketName: { type: String, required: true },
-//     ticketType: { type: String, enum: ["free", "paid"], required: true },
-//     ticketStock: {
-//       type: String,
-//       enum: ["limited", "unlimited"],
-//       required: true,
-//     },
-//     availableTickets: { type: Number },
-//     purchaseLimit: { type: Number, required: true },
-//     ticketPrice: { type: Number },
-//     benefits: { type: String, required: true },
-//     ticketDescription: { type: String, required: true },
-//     bank: { type: String },
-//     accountNumber: { type: Number },
-//     accountName: { type: String },
-//     socials: {
-//       webUrl: { type: String },
-//       twitter: { type: String },
-//       instagram: { type: String },
-//       whatsapp: { type: String },
-//       facebook: { type: String },
-//       telegram: { type: String },
-//     },
-//     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true }, // Link ticket to user
-//   },
-//   { timestamps: true }
-// );
-// const Ticket = mongoose.model<ITicket>("Ticket", TicketSchema);
-// export default Ticket;
