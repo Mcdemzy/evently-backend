@@ -71,7 +71,71 @@ export const registerUser = async (
     // Send verification email
     const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
     const emailText = `Click the link to verify your email: ${verificationLink}`;
-    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+    const emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 5px solid #624CF5;
+        }
+        .header {
+            color: #6440EB;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin: 20px 0;
+        }
+        .verify-button {
+            display: inline-block;
+            background-color: #6440EB;
+            color: #ffffff;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .verify-button:hover {
+            background-color: #5233C0;
+        }
+        .footer {
+            font-size: 14px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Verify Your Email Address</div>
+        <p class="message">Thank you for signing up! Please verify your email address by clicking the button below.</p>
+        <a href="${verificationLink}" class="verify-button">Verify Email</a>
+        <p class="message">If you did not create an account, please ignore this email.</p>
+        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
+    </div>
+</body>
+</html>
+`;
 
     await sendEmail(newUser.email, "Verify Your Email", emailText, emailHtml);
 
@@ -158,7 +222,71 @@ export const resendVerificationEmail = async (
     // Send the verification email
     const verificationLink = `https://evently-ems.vercel.app/verify-email?token=${emailVerificationToken}`;
     const emailText = `Click the link to verify your email: ${verificationLink}`;
-    const emailHtml = `<p>Click the link to verify your email: <a href="${verificationLink}">Verify Email</a></p>`;
+    const emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            border-top: 5px solid #624CF5;
+        }
+        .header {
+            color: #6440EB;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin: 20px 0;
+        }
+        .verify-button {
+            display: inline-block;
+            background-color: #6440EB;
+            color: #ffffff;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .verify-button:hover {
+            background-color: #5233C0;
+        }
+        .footer {
+            font-size: 14px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">Verify Your Email Address</div>
+        <p class="message">Thank you for signing up! Please verify your email address by clicking the button below.</p>
+        <a href="${verificationLink}" class="verify-button">Verify Email</a>
+        <p class="message">If you did not create an account, please ignore this email.</p>
+        <div class="footer">&copy; 2025 Evently. All rights reserved.</div>
+    </div>
+</body>
+</html>
+`;
 
     await sendEmail(user.email, "Verify Your Email", emailText, emailHtml);
 
@@ -379,7 +507,6 @@ export const forgotPassword = async (
     next(error);
   }
 };
-
 
 export const verifyOTP = async (
   req: Request,
