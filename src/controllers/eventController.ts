@@ -155,3 +155,30 @@ export const deleteEvent = async (
     }
   }
 };
+
+// Get events created by a specific user
+export const getEventsByUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.params.userId;
+
+    // Validate userId
+    if (!userId) {
+      res.status(400).json({ message: "User ID is required." });
+      return; // Ensure the function exits after sending the response
+    }
+
+    // Fetch events created by the user
+    const events = await Event.find({ createdBy: userId });
+
+    // Return the events
+    res.status(200).json(events);
+  } catch (error) {
+    res.status(500).json({
+      error:
+        error instanceof Error ? error.message : "An unknown error occurred",
+    });
+  }
+};
