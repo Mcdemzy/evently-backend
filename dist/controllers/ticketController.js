@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteTicket = exports.updateTicket = exports.getTicketById = exports.getTickets = exports.createTicket = void 0;
+exports.getTicketsByEventId = exports.deleteTicket = exports.updateTicket = exports.getTicketById = exports.getTickets = exports.createTicket = void 0;
 const ticketModel_1 = __importDefault(require("../models/ticketModel"));
 const cloudinary_1 = require("../config/cloudinary");
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -146,3 +146,28 @@ const deleteTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.deleteTicket = deleteTicket;
+// Get Tickets by Event ID
+const getTicketsByEventId = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { eventId } = req.params;
+        // Validate eventId
+        if (!mongoose_1.default.Types.ObjectId.isValid(eventId)) {
+            res.status(400).json({ success: false, message: "Invalid event ID" });
+            return; // Ensure function exits
+        }
+        // Find tickets by eventId
+        const tickets = yield ticketModel_1.default.find({ eventId });
+        if (!tickets.length) {
+            res
+                .status(404)
+                .json({ success: false, message: "No tickets found for this event" });
+            return;
+        }
+        res.status(200).json({ success: true, tickets });
+    }
+    catch (error) {
+        console.error("Error fetching tickets by event ID:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+exports.getTicketsByEventId = getTicketsByEventId;
