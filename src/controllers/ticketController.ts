@@ -153,3 +153,34 @@ export const deleteTicket = async (
     }
   }
 };
+
+// Get Tickets by Event ID
+export const getTicketsByEventId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { eventId } = req.params;
+
+    // Validate eventId
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      res.status(400).json({ success: false, message: "Invalid event ID" });
+      return; // Ensure function exits
+    }
+
+    // Find tickets by eventId
+    const tickets = await Ticket.find({ eventId });
+
+    if (!tickets.length) {
+      res
+        .status(404)
+        .json({ success: false, message: "No tickets found for this event" });
+      return;
+    }
+
+    res.status(200).json({ success: true, tickets });
+  } catch (error) {
+    console.error("Error fetching tickets by event ID:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

@@ -10,4 +10,5 @@ router.get("/", eventController_1.getEvents);
 router.get("/:id", eventController_1.getEventById);
 router.put("/:id", eventController_1.updateEvent);
 router.delete("/:id", eventController_1.deleteEvent);
+router.get("/user/:userId", eventController_1.getEventsByUser);
 exports.default = router;

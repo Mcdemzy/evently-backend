@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteEvent = exports.updateEvent = exports.getEventById = exports.getEvents = exports.createEvent = void 0;
+exports.getEventsByUser = exports.deleteEvent = exports.updateEvent = exports.getEventById = exports.getEvents = exports.createEvent = void 0;
 const eventModel_1 = __importDefault(require("../models/eventModel"));
 const createEvent = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -137,3 +137,24 @@ const deleteEvent = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.deleteEvent = deleteEvent;
+// Get events created by a specific user
+const getEventsByUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = req.params.userId;
+        // Validate userId
+        if (!userId) {
+            res.status(400).json({ message: "User ID is required." });
+            return; // Ensure the function exits after sending the response
+        }
+        // Fetch events created by the user
+        const events = yield eventModel_1.default.find({ createdBy: userId });
+        // Return the events
+        res.status(200).json(events);
+    }
+    catch (error) {
+        res.status(500).json({
+            error: error instanceof Error ? error.message : "An unknown error occurred",
+        });
+    }
+});
+exports.getEventsByUser = getEventsByUser;
