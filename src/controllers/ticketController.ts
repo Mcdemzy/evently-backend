@@ -92,7 +92,6 @@ export const getTickets = async (_req: Request, res: Response) => {
   }
 };
 
-// Get a Ticket by ID
 export const getTicketById = async (
   req: Request,
   res: Response

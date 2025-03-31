@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import Event from "../models/eventModel";
+import Ticket from "../models/ticketModel";
+import { cloudinary, upload } from "../config/cloudinary";
+import mongoose from "mongoose";
 
 interface AuthRequest extends Request {
   user?: { id: string; email: string; username: string };
@@ -90,7 +93,10 @@ export const getEventById = async (
       return;
     }
 
-    res.status(200).json(event);
+    // Fetch all tickets associated with this event
+    const tickets = await Ticket.find({ eventId: id });
+
+    res.status(200).json({ event, tickets });
   } catch (error: unknown) {
     if (error instanceof Error) {
       res.status(500).json({ error: error.message });
@@ -153,5 +159,63 @@ export const deleteEvent = async (
     } else {
       res.status(500).json({ error: "An unknown error occurred" });
     }
+  }
+};
+
+//update event image
+export const updateEventImage = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    upload.single("eventImage")(req, res, async (err: any) => {
+      if (err) {
+        return res.status(400).json({ success: false, message: err.message });
+      }
+
+      const { id } = req.params;
+
+      // Validate event ID
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Invalid event ID" });
+      }
+
+      let imageUrl = "";
+
+      // Upload image to Cloudinary if a file is provided
+      if (req.file) {
+        const result = await cloudinary.uploader.upload(req.file.path, {
+          folder: "events",
+        });
+        imageUrl = result.secure_url;
+      } else {
+        return res
+          .status(400)
+          .json({ success: false, message: "No image uploaded" });
+      }
+
+      const updatedEvent = await Event.findByIdAndUpdate(
+        id,
+        { eventImage: imageUrl },
+        { new: true }
+      );
+
+      if (!updatedEvent) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Event not found" });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Event image updated successfully",
+        event: updatedEvent,
+      });
+    });
+  } catch (error) {
+    console.error("Error updating event image:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
