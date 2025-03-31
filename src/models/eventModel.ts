@@ -13,6 +13,7 @@ interface IEvent extends Document {
   state?: string;
   location?: string;
   url?: string;
+  eventImage: string;
   createdBy: mongoose.Schema.Types.ObjectId;
 }
 
@@ -54,6 +55,7 @@ const EventSchema = new Schema<IEvent>(
         return this.eventLocation === "online";
       },
     },
+    eventImage: { type: String, default: "" },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
